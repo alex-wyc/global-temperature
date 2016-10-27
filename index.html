@@ -78,9 +78,14 @@
         -webkit-transition: all 0.1s ease-out;
       }
 
-      .year:hover, .year.active {
-        font-size: 23px;
-        color: #fff;
+      #currentInfo p {
+        font: 16px Georgia;
+        text-align: left;
+        float: left;
+        width: 300px;
+        color: rgba(255, 255, 255, 0.4);
+
+        -webkit-transition: all 0.1s ease-out;
       }
 
       #ce span {
@@ -113,8 +118,11 @@
   </div>
 
   <div id="currentInfo">
-      <input type="range" id="year-slider" value=200>
+      <input type="range" id="year-slider" value=200 autofocus>
       <span id="year">2013</span>
+      <p>Global Average Temperature: <span id="global-ave"></span></p>
+      <p>Max Global Land Temperature: <span id="maxtemp"></span></p>
+      <p>Min Global Land Temperature: <span id="mintemp"></span></p>
   </div>
 
   <div id="title">
@@ -132,6 +140,7 @@
   <script type="text/javascript">
     var totalLength = 63;
     var initYear = 1950;
+    var xhr2;
 
     year_slider = document.getElementById("year-slider");
     console.log(year_slider);
@@ -154,36 +163,57 @@
         };
       };
 
-      year_slider.addEventListener('input', function() {
-          document.getElementById("year").textContent = initYear + parseInt(year_slider.value);
-          settime(globe, parseInt(year_slider.value, 10))();
-      }, false);
+      xhr2 = new XMLHttpRequest();
+      xhr2.open('GET', '/global-temperature/data/WorldTempJSON.json', true);
+      xhr2.onreadystatechange = function(e) {
+          if (xhr2.readyState === 4 && xhr2.status === 200) {
+              var global_temps = JSON.parse(xhr2.responseText);
 
-            
-      var xhr;
-      TWEEN.start();
-      
-      
-      xhr = new XMLHttpRequest();
-      xhr.open('GET', '/global-temperature/data/CityTempJSON.json', true);
-      xhr.onreadystatechange = function(e) {
-        if (xhr.readyState === 4) {
-          if (xhr.status === 200) {
-            var data = JSON.parse(xhr.responseText);
-            window.data = data;
-            for (i=0;i<data.length;i++) {
-              globe.addData(data[i][1], {format: 'magnitude', name: data[i][0], animated: true});
-            }
-            globe.createPoints();
-            settime(globe, totalLength)();
-            globe.animate();
-            document.body.style.backgroundImage = 'none'; // remove loading
+              year_slider.addEventListener('input', function() {
+                  document.getElementById("year").textContent = initYear + parseInt(year_slider.value);
+                  document.getElementById("global-ave").textContent =
+                      Math.round(global_temps[parseInt(year_slider.value)][0] * 10) / 10 + " °C";
+                  document.getElementById("maxtemp").textContent = 
+                      Math.round(global_temps[parseInt(year_slider.value)][1] * 10) / 10 + " °C";
+                  document.getElementById("mintemp").textContent =
+                      Math.round(global_temps[parseInt(year_slider.value)][2] * 10) / 10 + " °C";
+
+                  settime(globe, parseInt(year_slider.value, 10))();
+              }, false);
+
+              // default values
+              document.getElementById("global-ave").textContent =
+                  Math.round(global_temps[parseInt(year_slider.defaultValue)][0] * 10) / 10 + " °C";
+              document.getElementById("maxtemp").textContent = 
+                  Math.round(global_temps[parseInt(year_slider.defaultValue)][1] * 10) / 10 + " °C";
+              document.getElementById("mintemp").textContent =
+                  Math.round(global_temps[parseInt(year_slider.defaultValue)][2] * 10) / 10 + " °C";
+
+              TWEEN.start();
+             
+              var xhr = new XMLHttpRequest();
+              xhr.open('GET', '/global-temperature/data/CityTempJSON.json', true);
+              xhr.onreadystatechange = function(e) {
+                if (xhr.readyState === 4) {
+                  if (xhr.status === 200) {
+                    var data = JSON.parse(xhr.responseText);
+                    window.data = data;
+                    for (i=0;i<data.length;i++) {
+                      globe.addData(data[i][1], {format: 'magnitude', name: data[i][0], animated: true});
+                    }
+                    globe.createPoints();
+                    settime(globe, totalLength)();
+                    globe.animate();
+                    document.body.style.backgroundImage = 'none'; // remove loading
+                  }
+                }
+              };
+              xhr.send(null);
           }
-        }
-      };
-      xhr.send(null);
-    }
+      }
 
+      xhr2.send(null);
+    }
   </script>
 
   </body>
